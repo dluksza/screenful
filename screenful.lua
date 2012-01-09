@@ -1,5 +1,14 @@
+----------------------------------------------------------------------------
+---- @author dluksza &lt;dariusz@luksza.org&gt;
+---- @copyright 2012 dluksza
+------------------------------------------------------------------------------
+
+-- Package envronment
+local naughty = require('naughty')
+
 local card = 'card0'
 local dev = '/sys/class/drm/'
+local configPath = '.config/awesome/screens_db.lua'
 
 local outputMapping = {
 	['DP-1'] = 'DP1',
@@ -11,6 +20,12 @@ local outputMapping = {
 }
 
 local function log(text)
+	naughty.notify({
+		title = 'screenful debug',
+		text = text,
+		ontop = true,
+		preset = naughty.config.presets.critical
+	})
 	local log = io.open('/tmp/log.txt', 'aw')
 	log:write(text)
 	log:flush()
@@ -55,7 +70,7 @@ end
 local function getXrandrOutput(outputPath, outCard)
 	local regex = dev .. outCard .. '/' .. outCard .. '[-]'
 	local drmName = string.gsub(outputPath, regex, '')
-	log('getXrandrdOutput: ' .. tostring(drmName) .. ' | regex: ' .. regex .. '\n')
+
 	return outputMapping[drmName]
 end
 
@@ -71,44 +86,70 @@ local function mergeTables(table1, table2)
 	return result
 end
 
+local function hasConfigurationFor(screenId)
+	local file = io.open(configPath, 'r')
+	local conf = file:read('*all')
+	file:close()
+
+	return string.find(conf, "['\"]" .. screenId .. "['\"]")
+end
+
+local function appendConfiguration(screenId)
+	local file = io.open(configPath, 'a')
+
+	file:write("--\t['" .. screenId .. "'] = {\n")
+	file:write("--\t\t['connected'] = function ()\n")
+	file:write("--\t\t\treturn nil\n")
+	file:write("--\t\tend,\n")
+	file:write("--\t\t['disconnected'] = function ()\n")
+	file:write("--\t\t\treturn nil\n")
+	file:write("--\t\tend\n")
+	file:write("--\t}\n")
+	file:flush()
+	file:close()
+end
+
 local function setupScreen(xrandrParams)
 	os.execute('xrandr ' .. xrandrParams)
 end
 
-local function performConfiguredAction(screenId, action, parameters)
+local function performConfiguredAction(screenId, action, xrandrOut)
 	require('screens_db')
-	log('perform confiured action for ' .. screenId .. '\n')
+	local xrandrOpts = ''
 	local configuration = screens[screenId]
-	log(tostring(configuration))
 	if configuration then
-		if configuration[action] then
-			log('performing action\n')
-			configuration[action]()
+		if configuration[action] then -- get xrandr options
+			xrandrOpts = configuration[action](xrandrOut)
+		end
+	else -- configuration not found, append configuration template
+		if tostring(screenId):len() ~= 0 and not hasConfigurationFor(screenId) then
+			naughty.notify({text = 'Append new configuration for screen id: ' .. screenId})
+			appendConfiguration(screenId)
 		end
 	end
+	if xrandrOpts:len() == 0 then -- use default configuration if specific was not found
+		xrandrOpts = screens['default'][action](xrandrOut)
+	end
+	setupScreen(xrandrOpts)
 end
 
 local function disableOutput(out, changedCard)
-	log('output disconnected ' .. out .. "\n")
 	local xrandrOut = getXrandrOutput(out, changedCard)
 	local screenId = getScreenId(out)
-	performConfiguredAction(screenId, 'disconnect')
-	setupScreen('--output ' .. xrandrOut .. ' --off')
+	performConfiguredAction(screenId, 'disconnected', xrandrOut)
+	naughty.notify({ text='Output ' .. xrandrOut .. ' disconnected' })
 end
 
 local function enableOutput(out, changedCard)
-	log('output connected' .. out .. "\n")
 	local xrandrOut = getXrandrOutput(out, changedCard)
 	local screenId = getScreenId(out)
-	log('enable out: ' .. out .. ' screenId: ' .. tostring(screenId) .. '\n')
-	performConfiguredAction(screenId, 'connected', { xrandrOut })
+	performConfiguredAction(screenId, 'connected', xrandrOut)
 end
 
 local cardDev = dev .. card
 local outputs = connectedOutputs(cardDev, card)
 
 function updateScreens(changedCard)
-	log('screen being updated ' .. changedCard .. '\n')
 	local newCardDev = dev .. changedCard
 	local newOutputs = connectedOutputs(newCardDev, changedCard)
 	local mergedOutputs = mergeTables(outputs, newOutputs)
