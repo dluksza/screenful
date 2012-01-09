@@ -1,0 +1,2 @@
+#  change   /devices/pci0000:00/0000:00:02.0/drm/card0 (drm)
+ACTION=="change", SUBSYSTEM=="drm", RUN+="notify-awesome %k"
