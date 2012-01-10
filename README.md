@@ -11,7 +11,7 @@ Install
 =======
 
 98-screen-detect.rules - copy to /etc/udev/rules and execute with root privileges `udevadm control --reload-rules`
-notify-awesome - copy to /lib/udev and add execution bit
+notify-awesome - copy to /lib/udev and add execution bit and change value of USER variable to yours user name
 screenful.lua - copy to ~/.config/awesome
 screens_db.lua - copy to ~/.config/awesome
 

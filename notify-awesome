@@ -1,8 +1,11 @@
 #! /bin/sh
+
+USER='lock'
+
 function notify() {
-	su lock -c "export DISPLAY=':0.0'; \
-                 export XAUTHORITY='/home/lock/.Xauthority'; \
-		 echo 'updateScreens(\"$1\")' | awesome-client &> /tmp/error.txt" &> /tmp/error.txt
+	su $USER -c "export DISPLAY=':0.0'; \
+                 export XAUTHORITY='/home/$USER/.Xauthority'; \
+		 echo 'updateScreens(\"$1\")' | awesome-client"
 }
 
 notify $1 &
