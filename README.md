@@ -25,16 +25,16 @@ No you can connect additional screen. HDMI outputs are detected almost instantly
 screens = {
     ['default'] = {
         ['connected'] = function (xrandrOutput)
-	    return '--output ' .. xrandrOutput .. ' --auto --same-as LVDS1'
-	end,
+            return '--output ' .. xrandrOutput .. ' --auto --same-as LVDS1'
+        end,
 	['disconnected'] = function (xrandrOutput)
-	    return '--output ' .. xrandrOutput .. ' --off'
-	end
+            return '--output ' .. xrandrOutput .. ' --off'
+        end
     }
     ['99999999999'] = {
         ['connected'] = function (xrandrOutput)
-	    return '--output ' .. xrandrOutput .. ' --auto --above LVDS1'
-	end,
+            return '--output ' .. xrandrOutput .. ' --auto --above LVDS1'
+        end,
     }
 }
 ```
