@@ -1,14 +1,17 @@
 screens = {
 	['default'] = {
-		['connected'] = function ()
+		['connected'] = function (xrandrOutput)
+			return '--output ' .. xrandrOutput .. ' --auto --same-as LVDS1'
 		end,
-		['disconnected'] = function ()
+		['disconnected'] = function (xrandrOutput)
+			return '--output ' .. xrandrOutput .. ' --off'
 		end
-	}
+	},
 	['55250827610'] = {
-		['connected'] = function ()
-			os.execute("xrandr --output HDMI1 --auto --above LVDS1")
+		['connected'] = function (xrandrOutput)
+			return '--output ' .. xrandrOutput .. ' --auto --above LVDS1'
 		end,
 		['disconnected'] = nil
-	},
+	}
 }
+
