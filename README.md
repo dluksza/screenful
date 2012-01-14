@@ -21,13 +21,13 @@ require("screenful")
 
 No you can connect additional screen. HDMI outputs are detected almost instantly in case of VGA outputs you need to wait cuple of seconds. Default configuration will clone LVDS1 output. Then you can edit ~/.config/awesome/screens_db.lua config file. At the end you will find commented out configuration template with screen EDID value. Both functions ('connected' and 'disconnected') should return xrandr options eg:
 
-```
+```lua
 screens = {
     ['default'] = {
         ['connected'] = function (xrandrOutput)
             return '--output ' .. xrandrOutput .. ' --auto --same-as LVDS1'
         end,
-	['disconnected'] = function (xrandrOutput)
+        ['disconnected'] = function (xrandrOutput)
             return '--output ' .. xrandrOutput .. ' --off'
         end
     }
