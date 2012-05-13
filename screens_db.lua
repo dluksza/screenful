@@ -4,7 +4,7 @@ screens = {
 			return '--output ' .. xrandrOutput .. ' --auto --same-as LVDS1'
 		end,
 		['disconnected'] = function (xrandrOutput)
-			return '--output ' .. xrandrOutput .. ' --off'
+			return '--output ' .. xrandrOutput .. ' --off --output LVDS1 --auto'
 		end
 	},
 	['55250827610'] = {
