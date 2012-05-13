@@ -48,7 +48,7 @@ $ xrandr --output VGA1 --auto --above LVDS1
 When it is disconnected, because 'disconnected' is not defined for this output, default disconnect action will be executed:
 
 ```
-$ xrandr --output VGA1 --off
+$ xrandr --output VGA1 --off --output LVDS1 --auto
 ```
 
 Known BUGS
