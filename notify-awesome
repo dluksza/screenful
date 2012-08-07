@@ -2,7 +2,7 @@
 
 USER='lock'
 
-function notify() {
+function notify {
 	su $USER -c "export DISPLAY=':0.0'; \
                  export XAUTHORITY='/home/$USER/.Xauthority'; \
 		 echo 'updateScreens(\"$1\")' | awesome-client"
