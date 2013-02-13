@@ -1,6 +1,6 @@
 #! /bin/sh
 
-USER='lock'
+USER=`who |grep tty7|awk '{print $1}'`
 
 function notify {
 	su $USER -c "export DISPLAY=':0.0'; \
