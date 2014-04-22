@@ -16,7 +16,8 @@ local outputMapping = {
 	['VGA-1'] = 'VGA1',
 	['LVDS-1'] = 'LVDS1',
 	['HDMI-A-1'] = 'HDMI1',
-	['HDMI-A-2'] = 'HDMI2'
+	['HDMI-A-2'] = 'HDMI2',
+	['eDP1'] = 'LVDS1'
 }
 
 local function log(text)
