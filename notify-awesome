@@ -1,6 +1,12 @@
 #! /bin/sh
 
-USER=`who |grep tty7|awk '{print $1}'`
+USER=`who | grep tty7 | awk '{print $1}'`
+
+# if no tty7, try tty1
+
+if [ -z "$USER" ]; then
+	USER=`who | grep tty1 | awk '{print $1}'`
+fi
 
 function notify {
 	su $USER -c "export DISPLAY=':0.0'; \
