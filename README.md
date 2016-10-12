@@ -10,14 +10,16 @@ Since configuration file is also lua script you can do many things when screens 
 Install
 =======
 
-98-screen-detect.rules - copy to /etc/udev/rules and execute with root privileges `udevadm control --reload-rules`
-notify-awesome - copy to /lib/udev and add execution bit
-screenful.lua - copy to ~/.config/awesome
-screens_db.lua - copy to ~/.config/awesome
+* 98-screen-detect.rules - copy to /etc/udev/rules and execute with root privileges `udevadm control --reload-rules`
+* notify-awesome - copy to /lib/udev and add execution bit
+* screenful.lua - copy to ~/.config/awesome
+* screens_db.lua - copy to ~/.config/awesome
 
 Add to your rc.lua file the following require statements:
+```
 require("awful.remote")
 require("screenful")
+```
 
 Now you can connect an additional screen. HDMI outputs are detected almost instantly, but in the case of VGA outputs you need to wait a couple of seconds for detection. Default configuration will clone LVDS1 output. Then you can edit ~/.config/awesome/screens_db.lua config file. At the end you will find commented out configuration template with screen EDID value. Both functions ('connected' and 'disconnected') should return xrandr options eg:
 
