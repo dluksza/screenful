@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 
 USER=`who | grep tty7 | awk '{print $1}'`
 
@@ -8,7 +8,7 @@ if [ -z "$USER" ]; then
 	USER=`who | grep tty1 | awk '{print $1}'`
 fi
 
-function notify {
+notify() {
 	su $USER -c "export DISPLAY=':0.0'; \
                  export XAUTHORITY='/home/$USER/.Xauthority'; \
 		 echo 'updateScreens(\"$1\")' | awesome-client"
