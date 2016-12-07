@@ -5,15 +5,17 @@
 
 -- Package envronment
 local naughty = require('naughty')
+local awful = require("awful")
 
 local waitForEdid = 30
 local card = 'card0'
 local dev = '/sys/class/drm/'
-local configPath = '.config/awesome/screens_db.lua'
+local configPath = awful.util.getdir("config") .. "/screens_db.lua"
 
 local outputMapping = {
 	['DP-1'] = 'DP1',
 	['DP-2'] = 'DP2',
+	['DP-3'] = 'DP3',
 	['VGA-1'] = 'VGA1',
 	['LVDS-1'] = 'LVDS1',
 	['HDMI-A-1'] = 'HDMI1',
@@ -87,7 +89,11 @@ local function getXrandrOutput(outputPath, outCard)
 	local regex = dev .. outCard .. '/' .. outCard .. '[-]'
 	local drmName = string.gsub(outputPath, regex, '')
 
-	return outputMapping[drmName]
+	if outputMapping[drmName] then
+		return outputMapping[drmName]
+	end
+
+	return drmName
 end
 
 local function mergeTables(table1, table2)

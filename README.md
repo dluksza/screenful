@@ -21,6 +21,8 @@ require("awful.remote")
 require("screenful")
 ```
 
+* Restart Awesome WM
+
 Now you can connect an additional screen. HDMI outputs are detected almost instantly, but in the case of VGA outputs you need to wait a couple of seconds for detection. Default configuration will clone LVDS1 output. Then you can edit ~/.config/awesome/screens_db.lua config file. At the end you will find commented out configuration template with screen EDID value. Both functions ('connected' and 'disconnected') should return xrandr options eg:
 
 ```lua
