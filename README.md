@@ -10,7 +10,7 @@ Since configuration file is also lua script you can do many things when screens 
 Install
 =======
 
-* 98-screen-detect.rules - copy to /etc/udev/rules and execute with root privileges `udevadm control --reload-rules`
+* 98-screen-detect.rules - copy to /etc/udev/rules.d/ and execute with root privileges `udevadm control --reload-rules`
 * notify-awesome - copy to /lib/udev and add execution bit
 * screenful.lua - copy to ~/.config/awesome
 * screens_db.lua - copy to ~/.config/awesome
