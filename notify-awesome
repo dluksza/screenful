@@ -8,6 +8,12 @@ if [ -z "$USER" ]; then
 	USER=`who | grep tty1 | awk '{print $1}'`
 fi
 
+# if no tty1, just pick the first logged in user
+
+if [ -z "$USER" ]; then
+	USER=`who --users | head -1 | awk '{print $1}'`
+fi
+
 notify() {
 	su $USER -c "export DISPLAY=':0.0'; \
                  export XAUTHORITY='/home/$USER/.Xauthority'; \
