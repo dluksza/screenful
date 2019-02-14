@@ -6,10 +6,13 @@
 -- Package envronment
 local naughty = require('naughty')
 local awful = require("awful")
+local screen = require("awful.screen")
 local io = require("io")
+local utils = require("utils")
+local awesome = awesome
 require('screens_db')
 
-local waitForEdid = 30
+local waitForEdid = 3
 local card = 'card0'
 local dev = '/sys/class/drm/'
 local configPath = awful.util.getdir("config") .. "/screens_db.lua"
@@ -53,26 +56,29 @@ local function emptyStr(str)
 end
 
 local function getScreenId(output)
-	local screenId = ''
-	local edid = io.open(output .. '/edid', 'rb')
-	local id = edid:read('*all')
-	io.close(edid)
-	local start = os.time()
-	while emptyStr(id) and os.time() - start < waitForEdid do
-		edid = io.open(output .. '/edid', 'rb')
-		id = edid:read('*all')
-		io.close(edid)
-	end
-	for i = 12, 17 do
-		code = id:byte(i)
-		if code then
-			screenId = screenId .. code
-		end
-	end
-	if emptyStr(id) then
-		log('cannot read EDID after "' .. waitForEdid .. 's')
-	end
+	local screenId = nil
 
+    if isOutputConnected(output) then
+        screenId = ''
+        local edid = io.open(output .. '/edid', 'rb')
+        local id = edid:read('*all')
+        io.close(edid)
+        local start = os.time()
+        while emptyStr(id) and os.time() - start < waitForEdid do
+            edid = io.open(output .. '/edid', 'rb')
+            id = edid:read('*all')
+            io.close(edid)
+        end
+        for i = 12, 17 do
+            code = id:byte(i)
+            if code then
+                screenId = screenId .. code
+            end
+        end
+        if emptyStr(id) then
+            log('cannot read EDID after "' .. waitForEdid .. 's')
+        end
+    end
 	return screenId
 end
 
@@ -134,20 +140,23 @@ end
 
 local function performConfiguredAction(screenId, action, xrandrOut)
 	local xrandrOpts = ''
-	local configuration = screens[screenId]
-	if configuration then
-		if configuration[action] then -- get xrandr options
-			xrandrOpts = configuration[action](xrandrOut)
-		end
-	else -- configuration not found, append configuration template
-		if tostring(screenId):len() ~= 0 and not hasConfigurationFor(screenId) then
-			naughty.notify({text = 'Append new configuration for screen id: ' .. screenId})
-			appendConfiguration(screenId, xrandrOut)
-		end
-	end
-	if xrandrOpts:len() == 0 then -- use default configuration if specific was not found
-		xrandrOpts = screens['default'][action](xrandrOut)
-	end
+    if screenId then
+        local configuration = screens[screenId]
+        if configuration then
+            if configuration[action] then -- get xrandr options
+                xrandrOpts = configuration[action](xrandrOut)
+            end
+        else -- configuration not found, append configuration template
+            if tostring(screenId):len() ~= 0 and not hasConfigurationFor(screenId) then
+                naughty.notify({text = 'Append new configuration for screen id: ' .. screenId})
+                appendConfiguration(screenId, xrandrOut)
+            end
+        end
+    end
+
+    if xrandrOpts:len() == 0 then -- use default configuration if specific was not found
+        xrandrOpts = screens['default'][action](xrandrOut)
+    end
     if xrandrOpts then
         setupScreen(xrandrOpts)
     end
@@ -156,14 +165,14 @@ end
 local function disableOutput(out, changedCard)
 	local xrandrOut = getXrandrOutput(out, changedCard)
 	local screenId = getScreenId(out)
-	performConfiguredAction(screenId, 'disconnected', xrandrOut)
-	naughty.notify({ text='Output ' .. xrandrOut .. ' disconnected' })
+    performConfiguredAction(screenId, 'disconnected', xrandrOut)
+    naughty.notify({ text='Output ' .. xrandrOut .. ' disconnected' })
 end
 
 local function enableOutput(out, changedCard)
 	local xrandrOut = getXrandrOutput(out, changedCard)
 	local screenId = getScreenId(out)
-	performConfiguredAction(screenId, 'connected', xrandrOut)
+    performConfiguredAction(screenId, 'connected', xrandrOut)
 end
 
 local cardDev = dev .. card
@@ -182,5 +191,8 @@ function updateScreens(changedCard)
 		end
 	end
 	outputs = newOutputs
+
+    -- reinit awesome
+    awesome.restart()
 end
 
