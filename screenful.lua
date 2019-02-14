@@ -8,7 +8,6 @@ local naughty = require('naughty')
 local awful = require("awful")
 local screen = require("awful.screen")
 local io = require("io")
-local utils = require("utils")
 local awesome = awesome
 require('screens_db')
 
