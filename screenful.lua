@@ -6,22 +6,14 @@
 -- Package envronment
 local naughty = require('naughty')
 local awful = require("awful")
+local io = require("io")
+local utils = require("utils")
+require('screens_db')
 
 local waitForEdid = 30
 local card = 'card0'
 local dev = '/sys/class/drm/'
 local configPath = awful.util.getdir("config") .. "/screens_db.lua"
-
-local outputMapping = {
-	['DP-1'] = 'DP1',
-	['DP-2'] = 'DP2',
-	['DP-3'] = 'DP3',
-	['VGA-1'] = 'VGA1',
-	['LVDS-1'] = 'LVDS1',
-	['HDMI-A-1'] = 'HDMI1',
-	['HDMI-A-2'] = 'HDMI2',
-	['eDP1'] = 'LVDS1'
-}
 
 local function log(text)
 	naughty.notify({
@@ -30,7 +22,7 @@ local function log(text)
 		ontop = true,
 		preset = naughty.config.presets.critical
 	})
-	local log = io.open('/tmp/log.txt', 'aw')
+	local log = io.open('/tmp/awesomewm-widget-screenful.error.log', 'aw')
 	log:write(text)
 	log:flush()
 	log:close()
@@ -116,14 +108,20 @@ local function hasConfigurationFor(screenId)
 	return string.find(conf, "['\"]" .. screenId .. "['\"]")
 end
 
-local function appendConfiguration(screenId)
+local function appendConfiguration(screenId, xrandrOut)
 	local file = io.open(configPath, 'a')
 
-	file:write("--\t['" .. screenId .. "'] = {\n")
-	file:write("--\t\t['connected'] = function ()\n")
+	file:write("--\t['" .. screenId .. "'] = { -- " .. xrandrOut .. "\n")
+	file:write("--\t\t['connected'] = function (xrandrOutput)\n")
+	file:write("--\t\t\tif xrandrOutput ~= defaultOutput then\n")
+	file:write("--\t\t\t\treturn '--output ' .. xrandrOutput .. ' --auto --same-as ' .. defaultOutput\n")
+	file:write("--\t\t\tend\n")
 	file:write("--\t\t\treturn nil\n")
 	file:write("--\t\tend,\n")
-	file:write("--\t\t['disconnected'] = function ()\n")
+	file:write("--\t\t['disconnected'] = function (xrandrOutput)\n")
+	file:write("--\t\t\tif xrandrOutput ~= defaultOutput then\n")
+	file:write("--\t\t\treturn '--output ' .. xrandrOutput .. ' --off --output ' .. defaultOutput .. ' --auto'\n")
+	file:write("--\t\t\tend\n")
 	file:write("--\t\t\treturn nil\n")
 	file:write("--\t\tend\n")
 	file:write("--\t}\n")
@@ -136,7 +134,6 @@ local function setupScreen(xrandrParams)
 end
 
 local function performConfiguredAction(screenId, action, xrandrOut)
-	require('screens_db')
 	local xrandrOpts = ''
 	local configuration = screens[screenId]
 	if configuration then
@@ -146,13 +143,15 @@ local function performConfiguredAction(screenId, action, xrandrOut)
 	else -- configuration not found, append configuration template
 		if tostring(screenId):len() ~= 0 and not hasConfigurationFor(screenId) then
 			naughty.notify({text = 'Append new configuration for screen id: ' .. screenId})
-			appendConfiguration(screenId)
+			appendConfiguration(screenId, xrandrOut)
 		end
 	end
 	if xrandrOpts:len() == 0 then -- use default configuration if specific was not found
 		xrandrOpts = screens['default'][action](xrandrOut)
 	end
-	setupScreen(xrandrOpts)
+    if xrandrOpts then
+        setupScreen(xrandrOpts)
+    end
 end
 
 local function disableOutput(out, changedCard)
