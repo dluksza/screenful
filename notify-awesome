@@ -5,19 +5,26 @@ USER=`who | grep tty7 | awk '{print $1}'`
 # if no tty7, try tty1
 
 if [ -z "$USER" ]; then
-	USER=`who | grep tty1 | awk '{print $1}'`
+    USER=`who | grep tty1 | awk '{print $1}'`
 fi
 
 # if no tty1, just pick the first logged in user
 
 if [ -z "$USER" ]; then
-	USER=`who --users | head -1 | awk '{print $1}'`
+    USER=`who --users | head -1 | awk '{print $1}'`
 fi
 
+
 notify() {
-	su $USER -c "export DISPLAY=':0.0'; \
-                 export XAUTHORITY='/home/$USER/.Xauthority'; \
-		 echo 'updateScreens(\"$1\")' | awesome-client"
-}
+    _UID=`id -u $USER`
+    su $USER -c "/bin/bash \
+                    -c ' \
+                        export DISPLAY=:0; \
+                        export XAUTHORITY='/home/$USER/.Xauthority'; \
+                        export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$_UID/bus; \
+                        awesome-client updateScreens\(\\\"$1\\\"\) \
+                    ' \
+                "
+    }
 
 notify $1 &

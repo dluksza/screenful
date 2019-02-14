@@ -6,22 +6,15 @@
 -- Package envronment
 local naughty = require('naughty')
 local awful = require("awful")
+local screen = require("awful.screen")
+local io = require("io")
+local awesome = awesome
+require('screens_db')
 
-local waitForEdid = 30
+local waitForEdid = 3
 local card = 'card0'
 local dev = '/sys/class/drm/'
 local configPath = awful.util.getdir("config") .. "/screens_db.lua"
-
-local outputMapping = {
-	['DP-1'] = 'DP1',
-	['DP-2'] = 'DP2',
-	['DP-3'] = 'DP3',
-	['VGA-1'] = 'VGA1',
-	['LVDS-1'] = 'LVDS1',
-	['HDMI-A-1'] = 'HDMI1',
-	['HDMI-A-2'] = 'HDMI2',
-	['eDP1'] = 'LVDS1'
-}
 
 local function log(text)
 	naughty.notify({
@@ -30,7 +23,7 @@ local function log(text)
 		ontop = true,
 		preset = naughty.config.presets.critical
 	})
-	local log = io.open('/tmp/log.txt', 'aw')
+	local log = io.open('/tmp/awesomewm-widget-screenful.error.log', 'aw')
 	log:write(text)
 	log:flush()
 	log:close()
@@ -62,26 +55,29 @@ local function emptyStr(str)
 end
 
 local function getScreenId(output)
-	local screenId = ''
-	local edid = io.open(output .. '/edid', 'rb')
-	local id = edid:read('*all')
-	io.close(edid)
-	local start = os.time()
-	while emptyStr(id) and os.time() - start < waitForEdid do
-		edid = io.open(output .. '/edid', 'rb')
-		id = edid:read('*all')
-		io.close(edid)
-	end
-	for i = 12, 17 do
-		code = id:byte(i)
-		if code then
-			screenId = screenId .. code
-		end
-	end
-	if emptyStr(id) then
-		log('cannot read EDID after "' .. waitForEdid .. 's')
-	end
+	local screenId = nil
 
+    if isOutputConnected(output) then
+        screenId = ''
+        local edid = io.open(output .. '/edid', 'rb')
+        local id = edid:read('*all')
+        io.close(edid)
+        local start = os.time()
+        while emptyStr(id) and os.time() - start < waitForEdid do
+            edid = io.open(output .. '/edid', 'rb')
+            id = edid:read('*all')
+            io.close(edid)
+        end
+        for i = 12, 17 do
+            code = id:byte(i)
+            if code then
+                screenId = screenId .. code
+            end
+        end
+        if emptyStr(id) then
+            log('cannot read EDID after "' .. waitForEdid .. 's')
+        end
+    end
 	return screenId
 end
 
@@ -116,14 +112,20 @@ local function hasConfigurationFor(screenId)
 	return string.find(conf, "['\"]" .. screenId .. "['\"]")
 end
 
-local function appendConfiguration(screenId)
+local function appendConfiguration(screenId, xrandrOut)
 	local file = io.open(configPath, 'a')
 
-	file:write("--\t['" .. screenId .. "'] = {\n")
-	file:write("--\t\t['connected'] = function ()\n")
+	file:write("--\t['" .. screenId .. "'] = { -- " .. xrandrOut .. "\n")
+	file:write("--\t\t['connected'] = function (xrandrOutput)\n")
+	file:write("--\t\t\tif xrandrOutput ~= defaultOutput then\n")
+	file:write("--\t\t\t\treturn '--output ' .. xrandrOutput .. ' --auto --same-as ' .. defaultOutput\n")
+	file:write("--\t\t\tend\n")
 	file:write("--\t\t\treturn nil\n")
 	file:write("--\t\tend,\n")
-	file:write("--\t\t['disconnected'] = function ()\n")
+	file:write("--\t\t['disconnected'] = function (xrandrOutput)\n")
+	file:write("--\t\t\tif xrandrOutput ~= defaultOutput then\n")
+	file:write("--\t\t\treturn '--output ' .. xrandrOutput .. ' --off --output ' .. defaultOutput .. ' --auto'\n")
+	file:write("--\t\t\tend\n")
 	file:write("--\t\t\treturn nil\n")
 	file:write("--\t\tend\n")
 	file:write("--\t}\n")
@@ -136,36 +138,40 @@ local function setupScreen(xrandrParams)
 end
 
 local function performConfiguredAction(screenId, action, xrandrOut)
-	require('screens_db')
 	local xrandrOpts = ''
-	local configuration = screens[screenId]
-	if configuration then
-		if configuration[action] then -- get xrandr options
-			xrandrOpts = configuration[action](xrandrOut)
-		end
-	else -- configuration not found, append configuration template
-		if tostring(screenId):len() ~= 0 and not hasConfigurationFor(screenId) then
-			naughty.notify({text = 'Append new configuration for screen id: ' .. screenId})
-			appendConfiguration(screenId)
-		end
-	end
-	if xrandrOpts:len() == 0 then -- use default configuration if specific was not found
-		xrandrOpts = screens['default'][action](xrandrOut)
-	end
-	setupScreen(xrandrOpts)
+    if screenId then
+        local configuration = screens[screenId]
+        if configuration then
+            if configuration[action] then -- get xrandr options
+                xrandrOpts = configuration[action](xrandrOut)
+            end
+        else -- configuration not found, append configuration template
+            if tostring(screenId):len() ~= 0 and not hasConfigurationFor(screenId) then
+                naughty.notify({text = 'Append new configuration for screen id: ' .. screenId})
+                appendConfiguration(screenId, xrandrOut)
+            end
+        end
+    end
+
+    if xrandrOpts:len() == 0 then -- use default configuration if specific was not found
+        xrandrOpts = screens['default'][action](xrandrOut)
+    end
+    if xrandrOpts then
+        setupScreen(xrandrOpts)
+    end
 end
 
 local function disableOutput(out, changedCard)
 	local xrandrOut = getXrandrOutput(out, changedCard)
 	local screenId = getScreenId(out)
-	performConfiguredAction(screenId, 'disconnected', xrandrOut)
-	naughty.notify({ text='Output ' .. xrandrOut .. ' disconnected' })
+    performConfiguredAction(screenId, 'disconnected', xrandrOut)
+    naughty.notify({ text='Output ' .. xrandrOut .. ' disconnected' })
 end
 
 local function enableOutput(out, changedCard)
 	local xrandrOut = getXrandrOutput(out, changedCard)
 	local screenId = getScreenId(out)
-	performConfiguredAction(screenId, 'connected', xrandrOut)
+    performConfiguredAction(screenId, 'connected', xrandrOut)
 end
 
 local cardDev = dev .. card
@@ -184,5 +190,8 @@ function updateScreens(changedCard)
 		end
 	end
 	outputs = newOutputs
+
+    -- reinit awesome
+    awesome.restart()
 end
 
