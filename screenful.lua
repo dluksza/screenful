@@ -7,7 +7,6 @@
 local naughty = require('naughty')
 local awful = require("awful")
 local io = require("io")
-local utils = require("utils")
 require('screens_db')
 
 local waitForEdid = 30
