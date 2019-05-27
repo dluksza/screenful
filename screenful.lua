@@ -8,10 +8,10 @@ local naughty = require('naughty')
 local awful = require("awful")
 local screen = require("awful.screen")
 local io = require("io")
+local os = require("os")
 local awesome = awesome
 require('screens_db')
 
-local waitForEdid = 3
 local card = 'card0'
 local dev = '/sys/class/drm/'
 local configPath = awful.util.getdir("config") .. "/screens_db.lua"
@@ -23,8 +23,8 @@ local function log(text)
 		ontop = true,
 		preset = naughty.config.presets.critical
 	})
-	local log = io.open('/tmp/awesomewm-widget-screenful.error.log', 'aw')
-	log:write(text)
+	local log = io.open('/tmp/awesomewm-widget-screenful.error.log', 'a+')
+	log:write(text .. "\n")
 	log:flush()
 	log:close()
 end
@@ -58,24 +58,20 @@ local function getScreenId(output)
 	local screenId = nil
 
     if isOutputConnected(output) then
-        screenId = ''
-        local edid = io.open(output .. '/edid', 'rb')
-        local id = edid:read('*all')
+		screenId = ''
+		os.execute("udevadm settle")
+		local edid = io.open(output .. '/edid', 'rb')
+		local id = edid:read('*all')
         io.close(edid)
-        local start = os.time()
-        while emptyStr(id) and os.time() - start < waitForEdid do
-            edid = io.open(output .. '/edid', 'rb')
-            id = edid:read('*all')
-            io.close(edid)
+		if emptyStr(id) then
+			log('cannot read EDID from ' .. output .. '/edid')
+			return false
         end
         for i = 12, 17 do
             code = id:byte(i)
             if code then
                 screenId = screenId .. code
             end
-        end
-        if emptyStr(id) then
-            log('cannot read EDID after "' .. waitForEdid .. 's')
         end
     end
 	return screenId

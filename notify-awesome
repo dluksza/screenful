@@ -1,28 +1,18 @@
 #!/bin/sh
 
-USER=`who | grep tty7 | awk '{print $1}'`
-
-# if no tty7, try tty1
-
-if [ -z "$USER" ]; then
-    USER=`who | grep tty1 | awk '{print $1}'`
-fi
-
-# if no tty1, just pick the first logged in user
-
-if [ -z "$USER" ]; then
-    USER=`who --users | head -1 | awk '{print $1}'`
-fi
-
+_PID=$(pgrep -x awesome)
+_UID=$(ps -o uid= -p $_PID)
+USER=$(id -nu $_UID)
+DBUS_ADDRESS_VAR=$(cat /proc/$_PID/environ | grep -z "^DBUS_SESSION_BUS_ADDRESS=")
 
 notify() {
-    _UID=`id -u $USER`
-    su $USER -c "/bin/bash \
+  	su - $USER -c "/bin/bash \
                     -c ' \
                         export DISPLAY=:0; \
                         export XAUTHORITY='/home/$USER/.Xauthority'; \
-                        export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$_UID/bus; \
-                        awesome-client updateScreens\(\\\"$1\\\"\) \
+                        export $DBUS_ADDRESS_VAR; \
+                        dbus-send --dest=org.awesomewm.awful --type=method_call \
+                          / org.awesomewm.awful.Remote.Eval string:"updateScreens\\\(\\\"$1\\\"\\\)" \
                     ' \
                 "
     }
